@@ -50,6 +50,12 @@ bool OpenPhysicalPartition(const std::string& name, PartitionHandle* handle) {
 
 bool OpenLogicalPartition(FastbootDevice* device, const std::string& partition_name,
                           PartitionHandle* handle) {
+    std::string existing_dm_path = "/dev/block/mapper/" + partition_name;
+    if (access(existing_dm_path.c_str(), W_OK) == 0) {
+        *handle = PartitionHandle(existing_dm_path, false);
+        return true;
+    }
+
     std::string slot_suffix = GetSuperSlotSuffix(device, partition_name);
     uint32_t slot_number = SlotNumberForSlotSuffix(slot_suffix);
     auto path = FindPhysicalPartition(fs_mgr_get_super_partition_name(slot_number));

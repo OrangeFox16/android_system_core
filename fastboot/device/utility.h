@@ -32,6 +32,7 @@ class PartitionHandle {
   public:
     PartitionHandle() {}
     explicit PartitionHandle(const std::string& path) : path_(path) {}
+    PartitionHandle(const std::string& path, bool exclusive) : path_(path), exclusive_(exclusive) {}
     PartitionHandle(const std::string& path, std::function<void()>&& closer)
         : path_(path), closer_(std::move(closer)) {}
     PartitionHandle(PartitionHandle&& other) = default;
@@ -46,7 +47,10 @@ class PartitionHandle {
     const std::string& path() const { return path_; }
     int fd() const { return fd_.get(); }
     bool Open(int flags) {
-        flags |= (O_EXCL | O_CLOEXEC | O_BINARY);
+        flags |= (O_CLOEXEC | O_BINARY);
+        if (exclusive_) {
+            flags |= O_EXCL;
+        }
 
         // Attempts to open a second device can fail with EBUSY if the device is already open.
         // Explicitly close any previously opened devices as unique_fd won't close them until
@@ -89,7 +93,8 @@ class PartitionHandle {
   private:
     std::string path_;
     android::base::unique_fd fd_;
-    int flags_;
+    int flags_ = 0;
+    bool exclusive_ = true;
     std::function<void()> closer_;
 };
 
